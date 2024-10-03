@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using Camera;
 using Events;
 using Player;
 using Player.ActionHandlers;
@@ -14,13 +15,13 @@ namespace Connection
         [SerializeField] private ColorConnector colorConnector;
 
         private ClickHandler _clickHandler;
-        
-        private readonly ColorConnectionHistoryHandler _historyHandler = new();
+
+        private readonly ColorConnectionHistoryHandler _historyHandler = new ();
 
         private ColorNode[] _nodes;
 
-        private readonly Dictionary<ColorNodeTarget, bool> _completionsByTargetNode = new();
-        private readonly Dictionary<ColorNode, HashSet<ColorNode>> _connectionsFromColorNode = new();
+        private readonly Dictionary<ColorNodeTarget, bool> _completionsByTargetNode = new ();
+        private readonly Dictionary<ColorNode, HashSet<ColorNode>> _connectionsFromColorNode = new ();
 
         private ColorNode _currentConnectionMainNode;
         private ColorConnector _currentColorConnector;
@@ -38,12 +39,13 @@ namespace Connection
             }
 
             _clickHandler = ClickHandler.Instance;
-            _clickHandler.SetDragEventHandlers(OnDragStart, OnDragEnd);
+            _clickHandler.AddDragEventHandlers(OnDragStart, OnDragEnd);
+            CameraDragger.Instance.SetConnectorManager(this, PrepareCameraDragBounds());
         }
 
         private void OnDestroy()
         {
-            _clickHandler.ClearEvents();
+            _clickHandler.ClearEvents(OnDragStart, OnDragEnd);
         }
 
         private void StartConnecting(ColorNode colorNode)
@@ -71,6 +73,35 @@ namespace Connection
         private void CancelConnecting()
         {
             Destroy(_currentColorConnector.gameObject);
+        }
+
+        public CameraDragBounds PrepareCameraDragBounds()
+        {
+            if (_nodes == null) return new CameraDragBounds();
+
+            Vector2 minPosition = _nodes[0].transform.position;
+            Vector2 maxPosition = _nodes[0].transform.position;
+
+            foreach (var obj in _nodes)
+            {
+                Vector2 objPosition = obj.transform.position;
+
+                minPosition = new Vector2(
+                    Mathf.Min(minPosition.x, objPosition.x),
+                    Mathf.Min(minPosition.y, objPosition.y)
+                );
+
+                maxPosition = new Vector2(
+                    Mathf.Max(maxPosition.x, objPosition.x),
+                    Mathf.Max(maxPosition.y, objPosition.y)
+                );
+            }
+
+            return new CameraDragBounds
+            {
+                minPosition = minPosition,
+                maxPosition = maxPosition
+            };
         }
 
         public bool TryGetColorNodeInPosition(Vector2 position, out ColorNode result)

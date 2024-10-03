@@ -60,6 +60,15 @@ namespace Utils.MonoBehaviourUtils
             var routine = RepeatRoutine(new WaitForSecondsRealtime(repeatDelay), repeatCallback);
             return Instance.StartCoroutine(routine);
         }
+        
+        public static Coroutine RepeatEveryUpdateCycle(Action repeatCallback)
+        {
+            if (_isDestroyed)
+                return null;
+            
+            var routine = RepeatRoutine(new WaitForEndOfFrame(), repeatCallback);
+            return Instance.StartCoroutine(routine);
+        }
 
         private static IEnumerator WaitCoroutine(YieldInstruction yieldInstruction, Action callback)
         {
